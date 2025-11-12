@@ -1,0 +1,91 @@
+SETUP:
+
+Before beginning, please install python (3.11 or later) and minoconda (https://docs.conda.io/en/latest/miniconda.html)
+
+Create a conda environment by running this in terminal:
+conda create -n myenv python=3.11
+(insert whatever python version you have)
+
+Activate the environment by running:
+conda activate myenv
+
+If successful, you should see (myenv) at the beginning of the terminal prompt
+
+Go to the code directory:
+cd path/to/codedirectory
+
+Install required packages by running:
+pip install -r requirements.txt
+
+Now we are ready to run the code!
+
+RUNNING CODE:
+
+For all the code files, the only thing the user needs to do is enter values between import sys and the next import statement.
+The code comments describe what is required
+
+Part 1:
+csv_to_vtp_new.py (LOCAL)
+This file uses the edges and nodes .csv files and creates a .vtp file of the brain arteries' graph representation.
+Two vtp files are stored: the first has all the unconnected graph components labeled as integers. The second has the 32 largest components. 
+This number was chosen as it is the largest number Paraview can visualize
+
+To visualize the graph components, first open the vtp file on Paraview.
+Then apply a threshold and select "component_label" as the Scalars and Coloring
+Select the check mark that says "Interpret values as categories" 
+
+Part 2: (optional)
+get_graph_components.py (LOCAL). This is not necessary after running Part 1.
+If you have a .vtp file without graph components, then this file will find them and save them
+
+Part 3: (optional):
+cerebellum_separate.py (LOCAL)
+The goal of this script is to separate the cerebellum from the rest of the brain.
+It does this by modeling the boundary as a sequence of lines in 2D.
+These lines serve as a boundary, on one side is the cerebellum and on the other is the rest of the brain.
+
+This script first requires the user to create a csv file which delineates the cerebellum boundary
+
+On Paraview, open a vtp file and select either the +Z or -Z views, whichever displays the cerebellum boundary more clearly.
+Use Excel to create the csv file. 
+From A1 to D1, enter the titles: p0_coord0, p0_coord1, p1_coord0, p1_coord1
+p0 and p1 represent the two points between which a line will be drawn
+coord0 and coord1 represent X and Y values
+The two points are given by: (p0_coord0, p0_coord1) and (p1_coord0, p1_coord1)
+
+Since we are denoting the boundary in a piecewise manner, please take care that p0[i] = p1[i-1].
+Please consult the sample csv file named 'sample_cerebellum_separation_points_BL6_1_OV.csv'
+
+On Excel, do File-->Save As and then save the file as a CSV
+
+In the script, enter the directories as the comments indicate. You may now run the script.
+The vtp file saved after this script is run contains the cerebellum in the field "cerebellum_label"
+This can be viewed on Paraview via thresholding similar to (1).
+
+Part 4: 
+hull_tweak_traversal_full.py and hull_tweak_traversal_lobe_line.py
+
+What each parser argument means:
+g: grid factor. Determines the density of scanning points. g*d gives the grid spacing
+d: min distance. The min possible distance between any two points in the dataset
+n: neighbourhood. The neighbourhood size in microns. Tells the algorithm what region to consider
+	when determining the axial range/window for each scanning point.
+t: distance threshold factor. When getting the surface nodes, algorithm searches in a square 
+	region of size t*d around each scan point. If a node lies in this region it is said to
+	be a surface node and that scan point is terminated. 
+s: slice factor (optional). s*d determines the thickness of each axial slice. This is the axial distance
+	that the scan points move incrementally and check for surface nodes.
+k: constant (optional). Doesn't matter so keep it at 0.75. Scales the axial range for each scan point
+m: margin. In microns. This is for scanning the lobe boundaries and isn't required in the 'full' py file. 
+	Along each lobe boundary line, the margin is applied perpendicularly and defines the region to
+	be scanned for surface points.
+
+*axial means perpendicular to the scanning plane. E.g. if the plane is XY then axial is Z.
+
+How this algorithm works:
+Step 1: for each scanning point, find the axial distance traversed before hitting a node. This is
+	determined using a distance threshold of grid spacing / 2.
+Step 2: by looking at the axial distance traversed within a neighbourhood centered on each scanning
+	point, calculate the axial range/window in which each scanning point should search for a 
+	surface node
+Step 3: using the axial windows and with distance threshold = d*t, extract the surface nodes.
